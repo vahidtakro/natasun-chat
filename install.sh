@@ -4,6 +4,7 @@
 #  ============================================================================
 #  Run:  curl -sSL <url> | bash        (one-command install)
 #  Or:   bash install.sh                (from a cloned repo)
+#  Remove:  bash install.sh uninstall
 #
 #  It asks a few questions, sets up everything (domain + free SSL via Caddy,
 #  database, .env, admin account), builds, and starts the service.
@@ -101,7 +102,62 @@ EOF
   info "Caddyfile configured."
 }
 
+# ---- Uninstall: remove containers, optional data, and the app folder ----
+do_uninstall() {
+  echo ""
+  echo "============================================================"
+  echo "  Natasun Chat — Uninstall"
+  echo "============================================================"
+  echo ""
+  warn "This will stop and remove the Natasun Chat containers."
+  warn "Your external MySQL database is NOT touched (it stays intact)."
+  echo ""
+  answer=$(read_input "Are you sure? Type 'yes' to continue" "")
+  [ "$answer" = "yes" ] || { say "Uninstall cancelled."; exit 0; }
+
+  # 1. Stop & remove containers
+  if command -v docker >/dev/null 2>&1 && [ -f "$APP_DIR/docker-compose.yml" ]; then
+    say "Stopping and removing containers..."
+    docker compose --profile db down --remove-orphans 2>&1 || true
+    docker compose down 2>/dev/null || true
+  fi
+
+  # 2. Optionally remove data volumes (conversations if bundled DB)
+  echo ""
+  wipe=$(read_input "Remove all Docker data volumes (messages/conversations if a bundled DB was used)? Type 'wipe' to delete" "")
+  if [ "$wipe" = "wipe" ]; then
+    say "Removing Docker volumes..."
+    docker volume rm natasun-chat_caddy_data natasun-chat_caddy_config natasun-chat_db_data 2>/dev/null || true
+  fi
+
+  # 3. Remove the app directory (keep a backup of .env)
+  echo ""
+  rmapp=$(read_input "Remove the app folder ($APP_DIR)? Type 'remove' to delete" "")
+  if [ "$rmapp" = "remove" ]; then
+    if [ -f "$APP_DIR/.env" ]; then
+      cp "$APP_DIR/.env" "$APP_DIR/.env.uninstall-backup" 2>/dev/null || true
+      say "Backed up secrets to .env.uninstall-backup"
+    fi
+    say "Removing $APP_DIR ..."
+    rm -rf "$APP_DIR"
+    say "App folder removed."
+  else
+    say "Keeping app folder."
+  fi
+
+  echo ""
+  say "Uninstall complete."
+  echo ""
+  [ -f "$APP_DIR/.env.uninstall-backup" ] && warn "Your previous secrets are saved at $APP_DIR/.env.uninstall-backup"
+}
+
 # ------------------------------------------------------------------ main
+# Subcommands
+if [ "${1:-}" = "uninstall" ] || [ "${1:-}" = "--uninstall" ] || [ "${1:-}" = "remove" ]; then
+  do_uninstall
+  exit 0
+fi
+
 echo ""
 echo "============================================================"
 echo "  Natasun Chat — Setup Wizard"

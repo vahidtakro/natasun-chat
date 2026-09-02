@@ -85,6 +85,19 @@ io.on("connection", (socket) => {
         ...message,
         createdAt: message.createdAt.toISOString(),
       });
+      // Notify all agents of this website about a new visitor message
+      // (used to trigger browser notifications for non-active conversations).
+      const conv = await prisma.conversation.findUnique({
+        where: { id: payload.conversationId },
+        select: { visitorName: true, visitorEmail: true, status: true },
+      });
+      io.to(`website:${client.websiteId}`).emit("message:notify", {
+        conversationId: payload.conversationId,
+        visitorName: conv?.visitorName || "New visitor",
+        visitorEmail: conv?.visitorEmail || "",
+        content: payload.content,
+        createdAt: message.createdAt.toISOString(),
+      });
       cb?.({ ok: true, message });
     } catch (e: any) {
       cb?.({ ok: false, error: e.message });

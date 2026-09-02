@@ -28,6 +28,7 @@ import AssignmentInd from "@mui/icons-material/AssignmentInd";
 import { io } from "socket.io-client";
 import axios from "axios";
 import { useConversationStore, useSocket } from "@/lib/store";
+import { ensureNotificationPermission, notifyAgent } from "@/lib/notify";
 
 export default function InboxPage() {
   const router = useRouter();
@@ -52,6 +53,7 @@ export default function InboxPage() {
     const a = localStorage.getItem("nc_agent");
     if (!a) { router.replace("/login"); return; }
     setAgent(JSON.parse(a));
+    ensureNotificationPermission();
     return () => {
       socket?.disconnect();
     };
@@ -97,6 +99,27 @@ export default function InboxPage() {
       setConversations((prev) =>
         prev.map((c) => (c.id === msg.conversationId ? { ...c, lastMessage: msg.content, updatedAt: msg.createdAt } : c))
       );
+    });
+
+    // New visitor message in a conversation the agent is NOT currently viewing.
+    // Update the unread badge and alert the agent (notification + sound).
+    s.on("message:notify", (notif: any) => {
+      const isActive = notif.conversationId === activeConversationId;
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === notif.conversationId
+            ? {
+                ...c,
+                lastMessage: notif.content,
+                updatedAt: notif.createdAt,
+                unreadCount: isActive ? c.unreadCount : (c.unreadCount || 0) + 1,
+              }
+            : c
+        )
+      );
+      if (!isActive) {
+        notifyAgent({ visitorName: notif.visitorName, content: notif.content });
+      }
     });
 
     s.on("conversation:closed", ({ conversationId }: any) => {

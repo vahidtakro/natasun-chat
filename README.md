@@ -10,6 +10,7 @@ Easily embed a branded chat widget on any website, manage conversations and agen
 - **Branded widget** — a tiny vanilla-JS widget that matches your site's color and logo.
 - **Real-time chat** — powered by Socket.IO (WebSockets) with typing indicators and read receipts.
 - **Agent dashboard** — inbox, conversation assignment, close/archive, unread counts, and agent management.
+- **Agent notifications** — browser notifications + sound when a visitor sends a new message while the inbox isn't focused.
 - **Subscription-ready** — the schema includes a `Subscription` model so you can sell plans later.
 - **Portable deployment** — run on your own VPS, Railway, Render, Fly.io, or split between Vercel + a WebSocket host.
 
@@ -100,6 +101,15 @@ bash <(curl -sSL https://raw.githubusercontent.com/vahidtakro/natasun-chat/maste
 ```
 
 Just re-run the installer. Because your database is external (or preserved in the Docker volume), conversations survive a server reinstall.
+
+### Uninstall
+
+```bash
+cd /opt/natasun-chat
+bash install.sh uninstall
+```
+
+It stops and removes the containers, optionally wipes the Docker data volumes (bundled MySQL / Caddy certs), and can delete the app folder. Your external MySQL database is never touched, and your secrets are backed up to `.env.uninstall-backup` before the folder is removed.
 
 ---
 
