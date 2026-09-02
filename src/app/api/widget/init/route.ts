@@ -1,18 +1,29 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// CORS headers so the widget can be embedded on any customer website.
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
 // Initialize a visitor session for a website (called by the widget)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { domain, name, email, locale } = body;
     if (!domain) {
-      return NextResponse.json({ error: "Domain is required." }, { status: 400 });
+      return NextResponse.json({ error: "Domain is required." }, { status: 400, headers: corsHeaders });
     }
 
     const website = await prisma.website.findUnique({ where: { domain } });
     if (!website) {
-      return NextResponse.json({ error: "Website not registered." }, { status: 404 });
+      return NextResponse.json({ error: "Website not registered." }, { status: 404, headers: corsHeaders });
     }
 
     let visitor = await prisma.visitor.create({
@@ -47,9 +58,9 @@ export async function POST(req: Request) {
       },
       visitor: { id: visitor.id, name: visitor.name },
       conversation: { id: conversation.id },
-    });
+    }, { headers: corsHeaders });
   } catch (e: any) {
     console.error("[widget/init] error", e);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: e.message }, { status: 500, headers: corsHeaders });
   }
 }
