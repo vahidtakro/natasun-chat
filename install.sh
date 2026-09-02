@@ -18,7 +18,12 @@ warn() { echo -e "${YELLOW}  !${NC} $*"; }
 die()  { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 
 # ---- Resolve where this script lives (works for curl|bash and clones) ----
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}" 2>/dev/null)" 2>/dev/null && pwd)"
+# When run via "bash <(curl ...)", BASH_SOURCE[0] is /dev/fd/* — not usable.
+# Fall back to the current working directory in that case.
+case "$SCRIPT_DIR" in
+  /dev/fd|/dev/fd/*) SCRIPT_DIR="$(pwd)" ;;
+esac
 APP_DIR="${APP_DIR:-$SCRIPT_DIR}"
 REPO_URL="${REPO_URL:-https://github.com/vahidtakro/natasun-chat}"
 
