@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # Expose the dashboard/API (3000) and WebSocket (3001)
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    env_file:
+      - .env
+    # Optional: include this if you want MySQL bundled via Docker instead of an external DB
+    # depends_on:
+    #   - db
+    # db:
+    #   image: mysql:8
+    #   restart: unless-stopped
+    #   environment:
+    #     MYSQL_DATABASE: natasun_chat
+    #     MYSQL_ROOT_PASSWORD: change-me
+    #   volumes:
+    #     - db_data:/var/lib/mysql
+    #   ports:
+    #     - "3306:3306"
+    # volumes:
+    #   db_data:

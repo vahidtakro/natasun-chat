@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Website {
+  id            String         @id @default(cuid())
+  name          String
+  domain        String         @unique
+  locale        String         @default("en")
+  primaryColor  String         @default("#7F56D9")
+  logo          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  agents        Agent[]
+  conversations Conversation[]
+  inboxes       Inbox[]
+  subscription  Subscription?
+  visitors      Visitor[]
+}
+
+model Agent {
+  id            String           @id @default(cuid())
+  email         String           @unique
+  name          String
+  password      String
+  avatar        String?
+  role          String           @default("agent")
+  isOnline      Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  website       Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  websiteId     String
+  conversations Conversation[]
+  messages      Message[]
+  assignedChats ChatAssignment[]
+}
+
+model Inbox {
+  id        String  @id @default(cuid())
+  name      String
+  type      String  @default("web")
+  website   Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  websiteId String
+}
+
+model Conversation {
+  id           String           @id @default(cuid())
+  websiteId    String
+  website      Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  agentId      String?
+  agent        Agent?           @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  status       String           @default("Open")
+  visitorName  String?
+  visitorEmail String?
+  language     String?
+  lastMessage  String?
+  unreadCount  Int              @default(0)
+  visitorId    String?
+  visitor      Visitor?         @relation(fields: [visitorId], references: [id], onDelete: SetNull)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  messages     Message[]
+  assignments  ChatAssignment[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  agentId        String?
+  agent          Agent?       @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  content        String
+  type           String       @default("text")
+  isAgent        Boolean      @default(false)
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
+
+model ChatAssignment {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  agentId        String
+  agent          Agent        @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  assignedAt     DateTime     @default(now())
+
+  @@unique([conversationId, agentId])
+}
+
+model Subscription {
+  id        String    @id @default(cuid())
+  websiteId String    @unique
+  website   Website   @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  plan      String    @default("free")
+  price     Float     @default(0)
+  startedAt DateTime  @default(now())
+  expiresAt DateTime?
+  status    String    @default("active")
+  stripeId  String?
+  createdAt DateTime  @default(now())
+}
+
+model Visitor {
+  id            String         @id @default(cuid())
+  websiteId     String
+  website       Website        @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  email         String?
+  name          String?
+  locale        String?
+  device        String?
+  userAgent     String?
+  lastSeen      DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+  conversations Conversation[]
+}
