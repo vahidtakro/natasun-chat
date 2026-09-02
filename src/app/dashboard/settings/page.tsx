@@ -82,12 +82,16 @@ export default function SettingsPage() {
       await axios.patch("/api/website", {
         websiteId: agent.websiteId,
         name,
+        domain,
         primaryColor,
       });
+      setWebsite((w) => (w ? { ...w, name, domain, primaryColor } : w));
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setSaved(false);
+      alert(err?.response?.data?.error || "Could not save changes.");
     } finally {
       setSaving(false);
     }

@@ -139,6 +139,7 @@
     time.className = "nc-time";
     time.textContent = formatTime(msg.createdAt);
     wrap.appendChild(time);
+    if (!body.contains(typingEl)) body.appendChild(typingEl);
     body.insertBefore(wrap, typingEl);
     body.scrollTop = body.scrollHeight;
     state.messages.push(msg);
@@ -158,14 +159,14 @@
   function initSocket() {
     if (state.socket) return;
     if (!window.io) {
-      body.innerHTML = '<div class="nc-loading">Could not load chat. Please refresh.</div>';
+      setBodyContent('<div class="nc-loading">Could not load chat. Please refresh.</div>');
       return;
     }
     var socket = window.io(wsUrl, { transports: ["websocket", "polling"] });
     state.socket = socket;
 
     socket.on("connect", function () {
-      body.innerHTML = '<div class="nc-welcome">👋 Welcome! How can we help you today?</div>';
+      setBodyContent('<div class="nc-welcome">👋 Welcome! How can we help you today?</div>');
       socket.emit("visitor:auth", {
         websiteId: state.website.id,
         visitorId: state.visitor.id,
@@ -239,7 +240,7 @@
         }
       })
       .catch(function (err) {
-        body.innerHTML = '<div class="nc-loading">Error: ' + (err.message || "Could not connect") + "</div>";
+        setBodyContent('<div class="nc-loading">Error: ' + (err.message || "Could not connect") + "</div>");
       });
   }
 
@@ -248,7 +249,7 @@
     s.src = baseUrl + "/socket.io-client.js";
     s.onload = initSocket;
     s.onerror = function () {
-      body.innerHTML = '<div class="nc-loading">Could not load chat.</div>';
+      setBodyContent('<div class="nc-loading">Could not load chat.</div>');
     };
     document.head.appendChild(s);
   }
