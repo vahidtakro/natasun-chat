@@ -79,7 +79,14 @@ export default function InboxPage() {
 
   useEffect(() => {
     if (!agent) return;
-    const s = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001", {
+    // Connect to the WebSocket on the same origin as this dashboard page.
+    // In production both are served behind Caddy (wss via /socket.io), so we
+    // derive it from window.location instead of relying on a build-time env.
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const wsUrl = origin
+      ? `${origin}/socket.io`
+      : process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3001";
+    const s = io(wsUrl, {
       transports: ["websocket", "polling"],
     });
     setSocket(s);

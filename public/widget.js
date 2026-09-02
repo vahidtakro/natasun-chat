@@ -131,6 +131,27 @@
   }
 
   function addMessage(msg) {
+    // Ignore exact duplicates (e.g. our own optimistic message echoed back).
+    for (var i = 0; i < state.messages.length; i++) {
+      if (state.messages[i].id === msg.id) return;
+    }
+    // Replace an optimistic ("temp") placeholder with the server-confirmed
+    // message that has the same content and sender, instead of adding a copy.
+    if (msg.id && String(msg.id).indexOf("temp") === -1) {
+      for (var j = 0; j < state.messages.length; j++) {
+        var prev = state.messages[j];
+        if (String(prev.id).indexOf("temp") === 0 && prev.content === msg.content && prev.isAgent === msg.isAgent) {
+          var oldEls = body.querySelectorAll(".nc-msg.nc-visitor");
+          var toRemove = null;
+          for (var k = 0; k < oldEls.length; k++) {
+            if (oldEls[k].textContent === msg.content) { toRemove = oldEls[k]; break; }
+          }
+          if (toRemove) toRemove.remove();
+          state.messages.splice(j, 1);
+          break;
+        }
+      }
+    }
     var wrap = document.createElement("div");
     wrap.className = "nc-msg " + (msg.isAgent ? "nc-agent" : "nc-visitor");
     wrap.style.background = msg.isAgent ? primaryColor : undefined;
