@@ -1,27 +1,49 @@
-version: "3.9"
-
 services:
+  # Main app: Next.js dashboard + API on 3000, WebSocket on 3001 (internal only)
   app:
     build: .
     restart: unless-stopped
-    # Expose the dashboard/API (3000) and WebSocket (3001)
-    ports:
-      - "3000:3000"
-      - "3001:3001"
+    expose:
+      - "3000"
+      - "3001"
     env_file:
       - .env
-    # Optional: include this if you want MySQL bundled via Docker instead of an external DB
-    # depends_on:
-    #   - db
-    # db:
-    #   image: mysql:8
-    #   restart: unless-stopped
-    #   environment:
-    #     MYSQL_DATABASE: natasun_chat
-    #     MYSQL_ROOT_PASSWORD: change-me
-    #   volumes:
-    #     - db_data:/var/lib/mysql
-    #   ports:
-    #     - "3306:3306"
-    # volumes:
-    #   db_data:
+
+  # Caddy reverse proxy: provides HTTPS (SSL) + domain automatically.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    container_name: natasun-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+
+  # Optional bundled MySQL. Started only with: docker compose --profile db up -d
+  # In external mode, the installer does not activate this profile.
+  db:
+    image: mysql:8
+    restart: unless-stopped
+    profiles: ["db"]
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-natasun_chat}
+      MYSQL_USER: ${DB_USER:-natasun}
+      MYSQL_PASSWORD: ${DB_PASS:-change-me}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:-change-me}
+    volumes:
+      - db_data:/var/lib/mysql
+    expose:
+      - "3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  caddy_data:
+  caddy_config:
+  db_data:

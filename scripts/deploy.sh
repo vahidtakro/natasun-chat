@@ -6,7 +6,7 @@
 # ============================================================
 set -e
 
-APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$APP_DIR"
 
 echo "=== Natasun Chat — Deploy ==="
@@ -29,27 +29,38 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-# 3. Build and start with Docker Compose
+# 3. Detect whether a bundled DB is being used (DB_HOST=db) -> enable db profile
+COMPOSE_PROFILE=""
+if grep -q '^DB_HOST=["]*db' .env 2>/dev/null; then
+  COMPOSE_PROFILE="--profile db"
+  echo ">> Bundled MySQL detected, using profile 'db'."
+fi
+
+# 4. Build and start with Docker Compose
 echo ">> Building and starting containers (this applies DB schema on startup too)..."
 docker compose down --remove-orphans 2>/dev/null || true
 docker compose build --pull
-docker compose up -d
+docker compose $COMPOSE_PROFILE up -d
 
-# 4. Show status
+# 5. Show status
 echo ""
 echo "=== Done! ==="
 echo "Containers:"
-docker compose ps
+docker compose $COMPOSE_PROFILE ps
 
 echo ""
 echo "Logs (last 40 lines):"
 docker compose logs --tail=40
 
 echo ""
-echo ">> Natasun Chat is running."
-echo "   Dashboard: http://<your-server-ip>:3000"
-echo "   WebSocket: http://<your-server-ip>:3001"
-echo ""
-echo "   To see live logs:         docker compose logs -f"
-echo "   To stop:                  docker compose down"
-echo "   To reinstall/refresh:     re-run ./deploy.sh"
+say() { echo ">> $*"; }
+say "Natasun Chat is running."
+if grep -q '^NEXT_PUBLIC_APP_URL=' .env 2>/dev/null; then
+  URL=$(grep '^NEXT_PUBLIC_APP_URL=' .env | head -1 | cut -d= -f2- | tr -d '"')
+  say "Dashboard: $URL"
+fi
+say ""
+say "   To see live logs:         docker compose logs -f"
+say "   To restart:               docker compose restart"
+say "   To stop:                  docker compose down"
+say "   To reinstall/refresh:     re-run ./deploy.sh"

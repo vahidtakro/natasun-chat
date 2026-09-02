@@ -1,0 +1,24 @@
+# Natasun Chat - Caddy configuration.
+# The domain comes from the APP_DOMAIN env var (set by the installer).
+# Both Next.js (app:3000) and the WebSocket server (app:3001) run inside
+# the same "app" container, so we proxy to app on both ports.
+
+{$APP_DOMAIN:-:80} {
+	# WebSocket (real-time chat) -> WS server inside app container
+	@ws {
+		path /socket.io/*
+	}
+	reverse_proxy @ws app:3001
+
+	# Everything else -> Next.js app
+	reverse_proxy app:3000
+
+	encode gzip
+
+	# Security headers
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+	}
+}
