@@ -113,6 +113,13 @@
   typingEl.innerHTML = 'Agent is typing<span class="nc-typing-dot">.</span><span class="nc-typing-dot">.</span><span class="nc-typing-dot">.</span>';
   body.appendChild(typingEl);
 
+  // Replace body content but keep the typing indicator as a child, so
+  // message insertion (insertBefore wrap, typingEl) never fails.
+  function setBodyContent(html) {
+    body.innerHTML = html;
+    if (!body.contains(typingEl)) body.appendChild(typingEl);
+  }
+
   // -------- Helpers --------
   function formatTime(iso) {
     try {
